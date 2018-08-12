@@ -1,0 +1,125 @@
+﻿<div id="body">
+    <table id="customers">
+        <tr>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Telephone Numbers</th>
+        </tr>
+    </table>
+    <form id="getCustomerByIdForm" method="post">
+        <h3>Find Customer By Id</h3>
+        <p>
+            <label for="customerId">Customer Id:</label>
+            <input type="number" id="customerId" name="Id" />
+        </p>
+        <input type="button" class="btn btn-info btn-lg" id="findCustomer" value="Search" data-toggle="modal" data-target="#updateForm" />
+    </form>
+    <div class="modal fade" id="updateForm" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Update Customer</h4>
+                </div>
+                <div class="modal-body">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section scripts{
+    <script type="text/javascript">
+        $(document).ready(function getAllCustomers() {
+            $.getJSON('/api/getallcustomers',
+                function (contactsJsonPayload) {
+                    $(contactsJsonPayload).each(function (i, item) {
+
+                        var phoneNumbers = [];
+
+                        $(item.PhoneNumbers).each(function () {
+                            phoneNumbers.push(this.TelephoneNumber);
+                        });
+
+
+                        $('#customers').append('<tr>' +
+                            '<td>' +
+                            item.Id +
+                            '</td>' +
+                            '<td>' +
+                            item.Name +
+                            '</td>' +
+                            '<td>' +
+                            phoneNumbers.join(", ") +
+                            '</td>' +
+                            '</tr>');
+                    });
+                });
+        });
+
+        $('#findCustomer').click(function () {
+            var customerId = document.getElementById("customerId").value;
+            $.getJSON('/api/getcustomerbyId/' + customerId,
+                function (item) {
+
+
+                    $('.modal-body').html(
+                        '<ul><li>Customer Id: ' +
+                        item.Id +
+                        '</li>' +
+                        '<li> Customer Name: ' +
+                        item.Name +
+                        '</li>' +
+                        '</ul>' +
+                        '<table id="phoneNumbers">' +
+                        '<th>Phone Number</th>' +
+                        '<th>Active</th>' +
+                        '</table>' +
+                        "<button id='save' onclick='updateCustomer(" +
+                        JSON.stringify(item) +
+                        ");'>Save</button>"
+                    );
+                    $(item.PhoneNumbers).each(function () {
+                        $('#phoneNumbers').append('<tr>' +
+                            '<td>' +
+                            this.TelephoneNumber +
+                            '</td>' +
+                            '<td>' +
+                            "<input type='checkbox' name='ActivePhone' id='" +
+                            this.TelephoneNumber +
+                            "'" +
+                            (this.Active ? "checked" : "unchecked") +
+                            '/> </td>' +
+                            '</tr>');
+                    });
+                });
+        });
+
+        function updateCustomer(item) {
+            var phoneNumbers = [];
+            $(item.PhoneNumbers).each(function () {
+                var checkboxValue = document.getElementById(this.TelephoneNumber).checked;
+                phoneNumbers.push({
+                    TelephoneNumber: this.TelephoneNumber,
+                    Active: checkboxValue
+                });
+            });
+            $.ajax({
+                type: "POST",
+                url: "/api/updatecustomer",
+                data: {
+                    Id: item.Id,
+                    Name: item.Name,
+                    PhoneNumbers: phoneNumbers
+                },
+                success: function () {
+                    location.reload(true);
+                }
+            });
+        }
+    </script>
+}
